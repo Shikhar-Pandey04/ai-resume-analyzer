@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <main className="bg-[url('/images/bg-main.svg')] bg-cover min-h-screen">
       <Navbar />
-      <section className="main-section text-center py-10">
+      <section className="main-section">
         <div className="page-heading py-16">
           <h1 className="text-3xl font-bold">Track Your Applications and Resume Ratings</h1>
           <h2 className="text-lg text-gray-600">Review your submissions and check AI-powered feedback</h2>
