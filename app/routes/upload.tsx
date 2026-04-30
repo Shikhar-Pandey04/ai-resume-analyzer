@@ -19,12 +19,10 @@ const Upload = () => {
   const [statusText, setStatusText] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
 
-  // 📂 file select
   const handleFileSelect = (file: File | null) => {
     setFile(file);
   };
 
-  // 🔥 MAIN LOGIC
   const handleAnalyze = async ({
     file,
     companyName,
@@ -39,7 +37,7 @@ const Upload = () => {
     setIsProcessing(true);
 
     try {
-      // 📤 Upload PDF
+      // Upload PDF
       setStatusText("Uploading resume...");
       const uploadedFile = await fs.upload([file]);
 
@@ -48,7 +46,7 @@ const Upload = () => {
         return;
       }
 
-      // 🖼️ Convert PDF → Image
+      // Convert PDF → Image
       setStatusText("Converting to image...");
       const imageFile = await convertPdfToImage(file);
 
@@ -57,7 +55,7 @@ const Upload = () => {
         return;
       }
 
-      // 📤 Upload image
+      // Upload image
       setStatusText("Uploading image...");
       const uploadedImage = await fs.upload([imageFile.file]);
 
@@ -66,7 +64,7 @@ const Upload = () => {
         return;
       }
 
-      // 🧠 Prepare data
+      // Prepare data
       setStatusText("Preparing data...");
       const uuid = generateUUID();
 
@@ -80,10 +78,9 @@ const Upload = () => {
         feedback: null,
       };
 
-      // initial save
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
-      // 🤖 AI feedback
+      // AI Call
       setStatusText("Analyzing resume...");
       const feedback: any = await ai.feedback(
         uploadedFile.path,
@@ -95,20 +92,34 @@ const Upload = () => {
         return;
       }
 
-      // 🔥 SAFE PARSING
+      console.log("🔥 FULL AI RESPONSE:", feedback);
+
+      // 🔥 ULTRA SAFE PARSING
       let feedbackText = "";
 
-      if (feedback?.message?.content) {
-        if (typeof feedback.message.content === "string") {
-          feedbackText = feedback.message.content;
-        } else if (Array.isArray(feedback.message.content)) {
-          feedbackText = feedback.message.content
-            .map((item: any) => item?.text || "")
-            .join("");
-        }
+      // Case 1: direct string
+      if (typeof feedback === "string") {
+        feedbackText = feedback;
       }
 
-      // 🚨 empty check
+      // Case 2: message.content string
+      else if (typeof feedback?.message?.content === "string") {
+        feedbackText = feedback.message.content;
+      }
+
+      // Case 3: array format
+      else if (Array.isArray(feedback?.message?.content)) {
+        feedbackText = feedback.message.content
+          .map((item: any) => item?.text || "")
+          .join("");
+      }
+
+      // Case 4: fallback stringify
+      else {
+        feedbackText = JSON.stringify(feedback);
+      }
+
+      // Empty check
       if (!feedbackText || feedbackText.trim() === "") {
         console.error("❌ EMPTY AI RESPONSE:", feedback);
         setStatusText("❌ AI returned empty response");
@@ -117,11 +128,11 @@ const Upload = () => {
 
       console.log("🔥 RAW AI TEXT:", feedbackText);
 
-      // 🔥 Extract JSON
+      // Extract JSON
       const cleanJSON = feedbackText.match(/\{[\s\S]*\}/)?.[0];
 
       if (!cleanJSON) {
-        console.error("❌ INVALID JSON FORMAT:", feedbackText);
+        console.error("❌ INVALID JSON:", feedbackText);
         setStatusText("❌ AI response not valid JSON");
         return;
       }
@@ -136,14 +147,13 @@ const Upload = () => {
         return;
       }
 
-      // 💾 Save final data
+      // Save
       data.feedback = parsedFeedback;
-
       console.log("💾 FINAL DATA:", data);
 
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
-      // 🚀 Redirect
+      // Redirect
       setStatusText("✅ Done! Redirecting...");
       navigate(`/resume/${uuid}`);
     } catch (err) {
@@ -154,7 +164,6 @@ const Upload = () => {
     }
   };
 
-  // 📝 FORM SUBMIT
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -201,18 +210,8 @@ const Upload = () => {
               onSubmit={handleSubmit}
               className="flex flex-col gap-4 mt-8 max-w-xl mx-auto"
             >
-              <input
-                name="company-name"
-                placeholder="Company Name"
-                className="input"
-              />
-
-              <input
-                name="job-title"
-                placeholder="Job Title"
-                className="input"
-              />
-
+              <input name="company-name" placeholder="Company Name" className="input" />
+              <input name="job-title" placeholder="Job Title" className="input" />
               <textarea
                 name="job-description"
                 placeholder="Job Description"
