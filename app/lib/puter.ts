@@ -192,7 +192,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             ],
           },
         ],
-        { model: "gpt-4o-mini" }
+        { model: "gpt-4o" }
       );
     } catch (err) {
       console.error("AI Feedback Error:", err);
