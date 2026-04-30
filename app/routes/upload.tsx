@@ -8,7 +8,7 @@ import { generateUUID } from '~/lib/utils';
 import { prepareInstructions } from '~/constants';
 
 const upload = () => {
-  const { auth, isLoading, fs, ai, kv } = usePuterStore();
+  const { fs, ai, kv } = usePuterStore();
   const navigate = useNavigate();
 
   const [isProcessing, setISProcessing] = useState(false);
@@ -39,6 +39,7 @@ const upload = () => {
 
       if (!uploadedFile) {
         setStatusText('Error: Failed to upload file');
+        setISProcessing(false);
         return;
       }
 
@@ -50,6 +51,7 @@ const upload = () => {
         const errorMsg = imageFile.error || 'Failed to convert PDF to image';
         console.error('PDF conversion failed:', errorMsg);
         setStatusText(`Error: ${errorMsg}`);
+        setISProcessing(false);
         return;
       }
 
@@ -59,6 +61,7 @@ const upload = () => {
 
       if (!uploadedImage) {
         setStatusText('Error: Failed to upload image');
+        setISProcessing(false);
         return;
       }
 
@@ -87,14 +90,15 @@ const upload = () => {
 
       if (!feedback) {
         setStatusText('Error: Failed to analyze resume');
+        setISProcessing(false);
         return;
       }
 
-      // 🔥 FIXED PART (SAFE JSON PARSE)
+      // 🔥 SAFE CONTENT ACCESS
       const feedbackText =
-        typeof feedback.message.content === 'string'
+        typeof feedback.message?.content === 'string'
           ? feedback.message.content
-          : feedback.message.content[0].text;
+          : feedback.message?.content?.[0]?.text || '';
 
       let parsedFeedback;
 
@@ -103,6 +107,7 @@ const upload = () => {
       } catch (err) {
         console.error("JSON parse failed:", feedbackText);
         setStatusText("Error: Invalid AI response format");
+        setISProcessing(false);
         return;
       }
 
@@ -136,6 +141,12 @@ const upload = () => {
     const companyName = formData.get('company-name') as string;
     const jobTitle = formData.get('job-title') as string;
     const jobDescription = formData.get('job-description') as string;
+
+    // 🔥 VALIDATION
+    if (!companyName || !jobTitle || !jobDescription) {
+      alert("Please fill all fields");
+      return;
+    }
 
     handleAnalyze({ companyName, jobTitle, jobDescription, file });
   };
