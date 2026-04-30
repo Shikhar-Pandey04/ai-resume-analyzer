@@ -94,18 +94,9 @@ const Upload = () => {
         return;
       }
 
-      // 🧾 FINAL ROBUST PARSING 🔥
-      let feedbackText = "";
+      // ✅ IMPORTANT FIX (STRING DIRECT)
+      const feedbackText = feedback;
 
-      if (typeof feedback?.message?.content === "string") {
-        feedbackText = feedback.message.content;
-      } else if (Array.isArray(feedback?.message?.content)) {
-        feedbackText = feedback.message.content
-          .map((item: any) => item?.text || "")
-          .join("");
-      }
-
-      // 🔥 DEBUG (important)
       console.log("🔥 RAW AI TEXT:", feedbackText);
 
       // 🔥 Extract JSON safely
@@ -208,7 +199,6 @@ const Upload = () => {
                 rows={5}
               />
 
-              {/* ✅ CONTROLLED FILE */}
               <FileUploader file={file} onFileSelect={handleFileSelect} />
 
               <button type="submit" className="primary-button">

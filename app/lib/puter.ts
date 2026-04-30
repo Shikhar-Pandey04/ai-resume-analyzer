@@ -29,7 +29,7 @@ type PuterStore = {
 
   ai: {
     chat: (prompt: any, options?: any) => Promise<any>;
-    feedback: (path: string, message: string) => Promise<any>;
+    feedback: (path: string, message: string) => Promise<string>;
   };
 
   kv: {
@@ -99,15 +99,12 @@ export const usePuterStore = create<PuterStore>((set, get) => {
   const initAuth = async () => {
     try {
       set({ isLoading: true });
-
       const puter = await waitForPuter();
-      let user = null;
 
+      let user = null;
       try {
         user = await puter.auth.getUser();
-      } catch {
-        user = null;
-      }
+      } catch {}
 
       set({
         auth: {
@@ -179,10 +176,12 @@ export const usePuterStore = create<PuterStore>((set, get) => {
     }
   };
 
-  const feedback = async (path: string, message: string) => {
+  // 🔥 FINAL FIXED AI FEEDBACK
+  const feedback = async (path: string, message: string): Promise<string> => {
     try {
       const puter = await waitForPuter();
-      return await puter.ai.chat(
+
+      const res = await puter.ai.chat(
         [
           {
             role: "user",
@@ -192,11 +191,25 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             ],
           },
         ],
-        { model: "gpt-4o" }
+        { model: "gpt-4o-mini" } // ✅ stable model
       );
+
+      // 🔥 extract string properly
+      if (typeof res?.message?.content === "string") {
+        return res.message.content;
+      }
+
+      if (Array.isArray(res?.message?.content)) {
+        return res.message.content
+          .map((item: any) => item?.text || "")
+          .join("");
+      }
+
+      return "";
     } catch (err) {
       console.error("AI Feedback Error:", err);
       setError("AI feedback failed");
+      return "";
     }
   };
 
