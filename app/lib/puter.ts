@@ -14,6 +14,7 @@ const getPuter = (): any => {
 
 export const usePuterStore = create((set, get) => {
   const setError = (msg: string) => {
+    console.error(msg);
     set({ error: msg, isLoading: false });
   };
 
@@ -27,7 +28,7 @@ export const usePuterStore = create((set, get) => {
     return puter.fs.upload(files);
   };
 
-  // 🤖 AI CHAT (correct signature)
+  // 🤖 AI CHAT (✅ FIXED SIGNATURE)
   const chat = async (prompt: any, options?: any) => {
     const puter = getPuter();
     if (!puter) {
@@ -35,10 +36,16 @@ export const usePuterStore = create((set, get) => {
       return;
     }
 
-    return puter.ai.chat(prompt, undefined, false, options);
+    try {
+      return await puter.ai.chat(prompt, options);
+    } catch (err) {
+      console.error("Chat Error:", err);
+      setError("AI chat failed");
+      return;
+    }
   };
 
-  // 🔥 AI FEEDBACK (FIXED MODEL)
+  // 🔥 AI FEEDBACK (✅ FINAL FIX)
   const feedback = async (path: string, message: string) => {
     const puter = getPuter();
     if (!puter) {
@@ -63,10 +70,8 @@ export const usePuterStore = create((set, get) => {
             ],
           },
         ],
-        undefined,
-        false,
         {
-          model: "gpt-4o-mini", // ✅ correct model
+          model: "gpt-4o-mini", // ✅ correct placement
         }
       );
     } catch (err) {

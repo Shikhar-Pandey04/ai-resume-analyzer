@@ -8,7 +8,11 @@ import { generateUUID } from '~/lib/utils';
 import { prepareInstructions } from '~/constants';
 
 const upload = () => {
-  const { fs, ai, kv } = usePuterStore();
+  // ✅ FIXED (Zustand selector)
+  const fs = usePuterStore((state) => state.fs);
+  const ai = usePuterStore((state) => state.ai);
+  const kv = usePuterStore((state) => state.kv);
+
   const navigate = useNavigate();
 
   const [isProcessing, setISProcessing] = useState(false);
@@ -39,7 +43,6 @@ const upload = () => {
 
       if (!uploadedFile) {
         setStatusText('Error: Failed to upload file');
-        setISProcessing(false);
         return;
       }
 
@@ -51,7 +54,6 @@ const upload = () => {
         const errorMsg = imageFile.error || 'Failed to convert PDF to image';
         console.error('PDF conversion failed:', errorMsg);
         setStatusText(`Error: ${errorMsg}`);
-        setISProcessing(false);
         return;
       }
 
@@ -61,7 +63,6 @@ const upload = () => {
 
       if (!uploadedImage) {
         setStatusText('Error: Failed to upload image');
-        setISProcessing(false);
         return;
       }
 
@@ -90,7 +91,6 @@ const upload = () => {
 
       if (!feedback) {
         setStatusText('Error: Failed to analyze resume');
-        setISProcessing(false);
         return;
       }
 
@@ -107,7 +107,6 @@ const upload = () => {
       } catch (err) {
         console.error("JSON parse failed:", feedbackText);
         setStatusText("Error: Invalid AI response format");
-        setISProcessing(false);
         return;
       }
 
