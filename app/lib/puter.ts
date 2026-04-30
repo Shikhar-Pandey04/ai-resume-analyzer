@@ -40,7 +40,7 @@ type PuterStore = {
   };
 };
 
-// 🔥 wait for puter
+// 🔥 Wait for Puter
 const waitForPuter = async (): Promise<any> => {
   return new Promise((resolve) => {
     const check = () => {
@@ -62,32 +62,52 @@ export const usePuterStore = create<PuterStore>((set, get) => {
 
   // 🔐 AUTH
   const signIn = async () => {
-    const puter = await waitForPuter();
-    await puter.auth.signIn();
-    await initAuth();
+    try {
+      set({ isLoading: true });
+      const puter = await waitForPuter();
+      await puter.auth.signIn();
+      await initAuth();
+    } catch (err) {
+      console.error("SignIn Error:", err);
+      setError("Sign in failed");
+    } finally {
+      set({ isLoading: false });
+    }
   };
 
   const signOut = async () => {
-    const puter = await waitForPuter();
-    await puter.auth.signOut();
-    set({
-      auth: {
-        isAuthenticated: false,
-        user: null,
-        signIn,
-        signOut,
-      },
-    });
+    try {
+      set({ isLoading: true });
+      const puter = await waitForPuter();
+      await puter.auth.signOut();
+      set({
+        auth: {
+          isAuthenticated: false,
+          user: null,
+          signIn,
+          signOut,
+        },
+      });
+    } catch (err) {
+      console.error("SignOut Error:", err);
+      setError("Sign out failed");
+    } finally {
+      set({ isLoading: false });
+    }
   };
 
   const initAuth = async () => {
     try {
+      set({ isLoading: true });
+
       const puter = await waitForPuter();
       let user = null;
 
       try {
         user = await puter.auth.getUser();
-      } catch {}
+      } catch {
+        user = null;
+      }
 
       set({
         auth: {
@@ -99,32 +119,53 @@ export const usePuterStore = create<PuterStore>((set, get) => {
       });
     } catch (err) {
       console.error("Auth init error:", err);
+      setError("Auth init failed");
+    } finally {
+      set({ isLoading: false });
     }
   };
 
-  // 📂 FS
+  // 📂 FILE SYSTEM
   const upload = async (files: File[] | Blob[]) => {
     try {
       const puter = await waitForPuter();
       return await puter.fs.upload(files);
     } catch (err) {
+      console.error("Upload Error:", err);
       setError("Upload failed");
     }
   };
 
   const read = async (path: string) => {
-    const puter = await waitForPuter();
-    return await puter.fs.read(path);
+    try {
+      const puter = await waitForPuter();
+      return await puter.fs.read(path);
+    } catch (err) {
+      console.error("Read Error:", err);
+      setError("File read failed");
+      return null;
+    }
   };
 
   const deleteFile = async (path: string) => {
-    const puter = await waitForPuter();
-    await puter.fs.delete(path);
+    try {
+      const puter = await waitForPuter();
+      await puter.fs.delete(path);
+    } catch (err) {
+      console.error("Delete Error:", err);
+      setError("Delete failed");
+    }
   };
 
   const readDir = async (path: string) => {
-    const puter = await waitForPuter();
-    return await puter.fs.readDir(path);
+    try {
+      const puter = await waitForPuter();
+      return await puter.fs.readDir(path);
+    } catch (err) {
+      console.error("ReadDir Error:", err);
+      setError("ReadDir failed");
+      return [];
+    }
   };
 
   // 🤖 AI
@@ -132,7 +173,8 @@ export const usePuterStore = create<PuterStore>((set, get) => {
     try {
       const puter = await waitForPuter();
       return await puter.ai.chat(prompt, options);
-    } catch {
+    } catch (err) {
+      console.error("Chat Error:", err);
       setError("AI chat failed");
     }
   };
@@ -152,30 +194,52 @@ export const usePuterStore = create<PuterStore>((set, get) => {
         ],
         { model: "gpt-4o-mini" }
       );
-    } catch {
+    } catch (err) {
+      console.error("AI Feedback Error:", err);
       setError("AI feedback failed");
     }
   };
 
-  // 🗄️ KV
+  // 🗄️ KV STORAGE
   const getKV = async (key: string) => {
-    const puter = await waitForPuter();
-    return await puter.kv.get(key);
+    try {
+      const puter = await waitForPuter();
+      return await puter.kv.get(key);
+    } catch (err) {
+      console.error("KV Get Error:", err);
+      setError("KV get failed");
+    }
   };
 
   const setKV = async (key: string, value: string) => {
-    const puter = await waitForPuter();
-    return await puter.kv.set(key, value);
+    try {
+      const puter = await waitForPuter();
+      return await puter.kv.set(key, value);
+    } catch (err) {
+      console.error("KV Set Error:", err);
+      setError("KV set failed");
+    }
   };
 
   const listKV = async (pattern: string, recursive?: boolean) => {
-    const puter = await waitForPuter();
-    return await puter.kv.list(pattern, recursive);
+    try {
+      const puter = await waitForPuter();
+      return await puter.kv.list(pattern, recursive);
+    } catch (err) {
+      console.error("KV List Error:", err);
+      setError("KV list failed");
+      return [];
+    }
   };
 
   const flushKV = async () => {
-    const puter = await waitForPuter();
-    await puter.kv.flush();
+    try {
+      const puter = await waitForPuter();
+      await puter.kv.flush();
+    } catch (err) {
+      console.error("KV Flush Error:", err);
+      setError("KV flush failed");
+    }
   };
 
   return {

@@ -10,6 +10,9 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
+import { useEffect } from "react";
+import { usePuterStore } from "~/lib/puter";
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -20,11 +23,18 @@ export const links: Route.LinksFunction = () => [
   {
     rel: "stylesheet",
     href:
-      "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+      "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900&display=swap",
   },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  // 🔥 IMPORTANT
+  const initAuth = usePuterStore((s) => s.initAuth);
+
+  useEffect(() => {
+    initAuth(); // ✅ initialize auth on app load
+  }, [initAuth]);
+
   return (
     <html lang="en">
       <head>
@@ -33,11 +43,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
+
       <body>
         {/* ✅ Puter script */}
         <script src="https://js.puter.com/v2/"></script>
 
         {children}
+
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -69,6 +81,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     <main className="pt-16 p-4 container mx-auto">
       <h1>{message}</h1>
       <p>{details}</p>
+
       {stack && (
         <pre className="w-full p-4 overflow-x-auto">
           <code>{stack}</code>
