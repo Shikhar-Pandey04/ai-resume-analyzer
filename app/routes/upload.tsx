@@ -1,68 +1,73 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
-import FileUploader from '~/components/FileUploader';
-import Navbar from '~/components/Navbar'
-import { usePuterStore } from '~/lib/puter';
-import { convertPdfToImage } from '~/lib/pdf2img';
-import { generateUUID } from '~/lib/utils';
-import { prepareInstructions } from '~/constants';
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
+import FileUploader from "../components/FileUploader";
+import Navbar from "../components/Navbar";
 
-const Upload = () => {   // ✅ FIXED NAME (Capital U)
+import { usePuterStore } from "~/lib/puter";
+import { convertPdfToImage } from "~/lib/pdf2img";
+import { generateUUID } from "~/lib/utils";
+import { prepareInstructions } from "~/constants";
 
+const Upload = () => {
   const fs = usePuterStore((state) => state.fs);
   const ai = usePuterStore((state) => state.ai);
   const kv = usePuterStore((state) => state.kv);
 
   const navigate = useNavigate();
 
-  const [isProcessing, setISProcessing] = useState(false);
-  const [statusText, setStatusText] = useState<string>();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [statusText, setStatusText] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
 
+  // 📂 file select
   const handleFileSelect = (file: File | null) => {
     setFile(file);
   };
 
+  // 🔥 MAIN LOGIC
   const handleAnalyze = async ({
     file,
     companyName,
     jobTitle,
     jobDescription,
   }: {
+    file: File;
     companyName: string;
     jobTitle: string;
     jobDescription: string;
-    file: File;
   }) => {
-    setISProcessing(true);
+    setIsProcessing(true);
 
     try {
-      setStatusText('Uploading the file...');
+      // 📤 Upload PDF
+      setStatusText("Uploading resume...");
       const uploadedFile = await fs.upload([file]);
 
-      if (!uploadedFile) {
-        setStatusText('Error: Failed to upload file');
+      if (!uploadedFile?.path) {
+        setStatusText("❌ Failed to upload resume");
         return;
       }
 
-      setStatusText('Converting to image...');
+      // 🖼️ Convert PDF → Image
+      setStatusText("Converting to image...");
       const imageFile = await convertPdfToImage(file);
 
-      if (!imageFile.file) {
-        const errorMsg = imageFile.error || 'Failed to convert PDF to image';
-        setStatusText(`Error: ${errorMsg}`);
+      if (!imageFile?.file) {
+        setStatusText("❌ PDF conversion failed");
         return;
       }
 
-      setStatusText('Uploading the image...');
+      // 📤 Upload image
+      setStatusText("Uploading image...");
       const uploadedImage = await fs.upload([imageFile.file]);
 
-      if (!uploadedImage) {
-        setStatusText('Error: Failed to upload image');
+      if (!uploadedImage?.path) {
+        setStatusText("❌ Failed to upload image");
         return;
       }
 
-      setStatusText('Preparing Data...');
+      // 🧠 Prepare data
+      setStatusText("Preparing data...");
       const uuid = generateUUID();
 
       const data: any = {
@@ -72,72 +77,75 @@ const Upload = () => {   // ✅ FIXED NAME (Capital U)
         companyName,
         jobTitle,
         jobDescription,
-        feedback: '',
+        feedback: null,
       };
 
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
-      setStatusText('Analyzing...');
+      // 🤖 AI feedback
+      setStatusText("Analyzing resume...");
       const feedback = await ai.feedback(
         uploadedFile.path,
         prepareInstructions({ jobTitle, jobDescription })
       );
 
       if (!feedback) {
-        setStatusText('Error: Failed to analyze resume');
+        setStatusText("❌ AI analysis failed");
         return;
       }
 
+      // 🧾 Extract safely
       const feedbackText =
-        typeof feedback.message?.content === 'string'
+        typeof feedback?.message?.content === "string"
           ? feedback.message.content
-          : feedback.message?.content?.[0]?.text || '';
+          : feedback?.message?.content?.[0]?.text || "";
 
       let parsedFeedback;
 
       try {
         parsedFeedback = JSON.parse(feedbackText);
-      } catch {
-        setStatusText("Error: Invalid AI response format");
+      } catch (err) {
+        console.error("JSON parse error:", feedbackText);
+        setStatusText("❌ Invalid AI response");
         return;
       }
 
+      // 💾 Save final data
       data.feedback = parsedFeedback;
-
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
-      setStatusText('Analysis complete, redirecting...');
+      // 🚀 Redirect
+      setStatusText("✅ Done! Redirecting...");
       navigate(`/resume/${uuid}`);
-
     } catch (err) {
       console.error("FULL ERROR:", err);
-      setStatusText("Something went wrong!");
+      setStatusText("❌ Something went wrong");
     } finally {
-      setISProcessing(false);
+      setIsProcessing(false);
     }
   };
 
+  // 📝 FORM SUBMIT
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!file) {
-      alert('Please upload a resume file first!');
+      alert("Please upload a resume first!");
       return;
     }
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData(e.currentTarget);
 
-    const companyName = formData.get('company-name') as string;
-    const jobTitle = formData.get('job-title') as string;
-    const jobDescription = formData.get('job-description') as string;
+    const companyName = formData.get("company-name") as string;
+    const jobTitle = formData.get("job-title") as string;
+    const jobDescription = formData.get("job-description") as string;
 
     if (!companyName || !jobTitle || !jobDescription) {
       alert("Please fill all fields");
       return;
     }
 
-    handleAnalyze({ companyName, jobTitle, jobDescription, file });
+    handleAnalyze({ file, companyName, jobTitle, jobDescription });
   };
 
   return (
@@ -145,30 +153,50 @@ const Upload = () => {   // ✅ FIXED NAME (Capital U)
       <Navbar />
 
       <section className="main-section">
-        <div className="page-heading py-16">
+        <div className="page-heading py-16 text-center">
           <h1>Smart feedback for your dream job</h1>
 
           {isProcessing ? (
             <>
-              <h2>{statusText}</h2>
-              <img src="/images/resume-scan.gif" className="w-full" />
+              <h2 className="mt-4">{statusText}</h2>
+              <img src="/images/resume-scan.gif" className="w-full mt-6" />
             </>
           ) : (
-            <h2>Drop your resume for an ATS score and improvement tips</h2>
+            <h2 className="mt-4">
+              Drop your resume for an ATS score and improvement tips
+            </h2>
           )}
 
           {!isProcessing && (
             <form
               onSubmit={handleSubmit}
-              className="flex flex-col gap-4 mt-8"
+              className="flex flex-col gap-4 mt-8 max-w-xl mx-auto"
             >
-              <input name="company-name" placeholder="Company Name" />
-              <input name="job-title" placeholder="Job Title" />
-              <textarea name="job-description" placeholder="Job Description" />
+              <input
+                name="company-name"
+                placeholder="Company Name"
+                className="input"
+              />
 
-              <FileUploader onFileSelect={handleFileSelect} />
+              <input
+                name="job-title"
+                placeholder="Job Title"
+                className="input"
+              />
 
-              <button type="submit">Analyze Resume</button>
+              <textarea
+                name="job-description"
+                placeholder="Job Description"
+                className="input"
+                rows={5}
+              />
+
+              {/* 🔥 FIXED LINE */}
+              <FileUploader file={file} onFileSelect={handleFileSelect} />
+
+              <button type="submit" className="primary-button">
+                Analyze Resume
+              </button>
             </form>
           )}
         </div>
@@ -177,4 +205,4 @@ const Upload = () => {   // ✅ FIXED NAME (Capital U)
   );
 };
 
-export default Upload; // ✅ FIXED EXPORT
+export default Upload;

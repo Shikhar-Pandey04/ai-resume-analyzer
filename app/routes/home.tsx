@@ -1,9 +1,9 @@
 import type { Route } from "./+types/home";
 import Navbar from "~/components/Navbar";
 import ResumeCard from "~/components/ResumeCard";
-import {usePuterStore} from "~/lib/puter";
-import {Link, useNavigate} from "react-router";
-import {useEffect, useState} from "react";
+import { usePuterStore } from "~/lib/puter";
+import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -13,65 +13,97 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  const { auth, kv } = usePuterStore();
+  // ✅ SAFE STORE ACCESS
+  const auth = usePuterStore((state) => state.auth);
+  const kv = usePuterStore((state) => state.kv);
+
   const navigate = useNavigate();
-  const [resumes, setResumes] = useState<Resume[]>([]);
+
+  const [resumes, setResumes] = useState<any[]>([]);
   const [loadingResumes, setLoadingResumes] = useState(false);
 
+  // 🔐 AUTH CHECK (SAFE)
   useEffect(() => {
-    if(!auth.isAuthenticated) navigate('/auth?next=/');
-  }, [auth.isAuthenticated])
+    if (auth && auth.isAuthenticated === false) {
+      navigate("/auth?next=/");
+    }
+  }, [auth, navigate]);
 
+  // 📦 LOAD RESUMES
   useEffect(() => {
     const loadResumes = async () => {
-      setLoadingResumes(true);
+      try {
+        setLoadingResumes(true);
 
-      const resumes = (await kv.list('resume:*', true)) as KVItem[];
+        // ⚠️ SAFETY CHECK
+        if (!kv?.list) {
+          console.warn("KV list not available");
+          setLoadingResumes(false);
+          return;
+        }
 
-      const parsedResumes = resumes?.map((resume) => (
-          JSON.parse(resume.value) as Resume
-      ))
+        const resumes = await kv.list("resume:*", true);
 
-      setResumes(parsedResumes || []);
-      setLoadingResumes(false);
-    }
+        const parsedResumes =
+          resumes?.map((item: any) => {
+            try {
+              return JSON.parse(item.value);
+            } catch {
+              return null;
+            }
+          }).filter(Boolean) || [];
 
-    loadResumes()
-  }, []);
+        setResumes(parsedResumes);
+      } catch (err) {
+        console.error("Load resumes error:", err);
+      } finally {
+        setLoadingResumes(false);
+      }
+    };
 
-  return <main className="bg-[url('/images/bg-main.svg')] bg-cover">
-    <Navbar />
+    loadResumes();
+  }, [kv]);
 
-    <section className="main-section">
-      <div className="page-heading py-16">
-        <h1>Track Your Applications & Resume Ratings</h1>
-        {!loadingResumes && resumes?.length === 0 ? (
+  return (
+    <main className="bg-[url('/images/bg-main.svg')] bg-cover min-h-screen">
+      <Navbar />
+
+      <section className="main-section">
+        <div className="page-heading py-16">
+          <h1>Track Your Applications & Resume Ratings</h1>
+
+          {!loadingResumes && resumes.length === 0 ? (
             <h2>No resumes found. Upload your first resume to get feedback.</h2>
-        ): (
-          <h2>Review your submissions and check AI-powered feedback.</h2>
-        )}
-      </div>
-      {loadingResumes && (
+          ) : (
+            <h2>Review your submissions and check AI-powered feedback.</h2>
+          )}
+        </div>
+
+        {/* 🔄 LOADING */}
+        {loadingResumes && (
           <div className="flex flex-col items-center justify-center">
             <img src="/images/resume-scan-2.gif" className="w-[200px]" />
           </div>
-      )}
+        )}
 
-      {!loadingResumes && resumes.length > 0 && (
-        <div className="resumes-section">
-          {resumes.map((resume) => (
+        {/* 📄 RESUME LIST */}
+        {!loadingResumes && resumes.length > 0 && (
+          <div className="resumes-section">
+            {resumes.map((resume: any) => (
               <ResumeCard key={resume.id} resume={resume} />
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {!loadingResumes && resumes?.length === 0 && (
+        {/* ➕ EMPTY STATE */}
+        {!loadingResumes && resumes.length === 0 && (
           <div className="flex flex-col items-center justify-center mt-10 gap-4">
             <Link to="/upload" className="primary-button w-fit text-xl font-semibold">
               Upload Resume
             </Link>
           </div>
-      )}
-    </section>
-  </main>
+        )}
+      </section>
+    </main>
+  );
 }

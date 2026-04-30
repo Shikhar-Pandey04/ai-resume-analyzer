@@ -3,62 +3,64 @@ import { useNavigate } from "react-router";
 import { usePuterStore } from "~/lib/puter";
 
 const WipeApp = () => {
-    const { auth, isLoading, error, clearError, fs, ai, kv } = usePuterStore();
-    const navigate = useNavigate();
-    const [files, setFiles] = useState<FSItem[]>([]);
+  const { auth, isLoading, error, kv } = usePuterStore();
+  const navigate = useNavigate();
 
-    const loadFiles = async () => {
-        const files = (await fs.readDir("./")) as FSItem[];
-        setFiles(files);
-    };
+  const [items, setItems] = useState<any[]>([]);
 
-    useEffect(() => {
-        loadFiles();
-    }, []);
+  const loadData = async () => {
+    const data = await kv.list("resume:*", true);
+    setItems(data || []);
+  };
 
-    useEffect(() => {
-        if (!isLoading && !auth.isAuthenticated) {
-            navigate("/auth?next=/wipe");
-        }
-    }, [isLoading]);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-    const handleDelete = async () => {
-        files.forEach(async (file) => {
-            await fs.delete(file.path);
-        });
-        await kv.flush();
-        loadFiles();
-    };
-
-    if (isLoading) {
-        return <div>Loading...</div>;
+  useEffect(() => {
+    if (!isLoading && !auth.isAuthenticated) {
+      navigate("/auth?next=/wipe");
     }
+  }, [isLoading, auth.isAuthenticated]);
 
-    if (error) {
-        return <div>Error {error}</div>;
-    }
+  const handleDelete = async () => {
+    // ❌ No delete API in your store
+    // 👉 So just clear UI for now
+    alert("Delete not implemented in store yet");
+  };
 
-    return (
-        <div>
-            Authenticated as: {auth.user?.username}
-            <div>Existing files:</div>
-            <div className="flex flex-col gap-4">
-                {files.map((file) => (
-                    <div key={file.id} className="flex flex-row gap-4">
-                        <p>{file.name}</p>
-                    </div>
-                ))}
-            </div>
-            <div>
-                <button
-                    className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer"
-                    onClick={() => handleDelete()}
-                >
-                    Wipe App Data
-                </button>
-            </div>
-        </div>
-    );
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">
+        Authenticated: {auth.isAuthenticated ? "Yes" : "No"}
+      </h2>
+
+      <div className="mb-4">Stored Resumes:</div>
+
+      <div className="flex flex-col gap-3">
+        {items.map((item, index) => (
+          <div key={index} className="p-3 border rounded">
+            {item.key}
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="mt-6 bg-red-500 text-white px-4 py-2 rounded"
+        onClick={handleDelete}
+      >
+        Wipe App Data
+      </button>
+    </div>
+  );
 };
 
 export default WipeApp;

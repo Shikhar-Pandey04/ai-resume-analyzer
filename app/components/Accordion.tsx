@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useState } from "react";
-import { cn } from "~/lib/utils";
 
 interface AccordionContextType {
   activeItems: string[];
@@ -96,11 +95,12 @@ export const AccordionHeader: React.FC<AccordionHeaderProps> = ({
   const { toggleItem, isItemActive } = useAccordion();
   const isActive = isItemActive(itemId);
 
+  // ✅ FIXED ICON (NO cn ERROR)
   const defaultIcon = (
     <svg
-      className={cn("w-5 h-5 transition-transform duration-200", {
-        "rotate-180": isActive,
-      })}
+      className={`w-5 h-5 transition-transform duration-200 ${
+        isActive ? "rotate-180" : ""
+      }`}
       fill="none"
       stroke="#98A2B3"
       viewBox="0 0 24 24"
@@ -160,7 +160,7 @@ export const AccordionContent: React.FC<AccordionContentProps> = ({
         ${className}
       `}
     >
-      <div className="px-4 py-3 ">{children}</div>
+      <div className="px-4 py-3">{children}</div>
     </div>
   );
 };
