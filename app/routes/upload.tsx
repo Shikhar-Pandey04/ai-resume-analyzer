@@ -94,18 +94,26 @@ const Upload = () => {
         return;
       }
 
-      // 🧾 Extract response safely
-      const feedbackText =
-        typeof feedback?.message?.content === "string"
-          ? feedback.message.content
-          : feedback?.message?.content?.[0]?.text || "";
+      // 🧾 FINAL ROBUST PARSING 🔥
+      let feedbackText = "";
 
-      // 🔥 FIX: extract only JSON
+      if (typeof feedback?.message?.content === "string") {
+        feedbackText = feedback.message.content;
+      } else if (Array.isArray(feedback?.message?.content)) {
+        feedbackText = feedback.message.content
+          .map((item: any) => item?.text || "")
+          .join("");
+      }
+
+      // 🔥 DEBUG (important)
+      console.log("🔥 RAW AI TEXT:", feedbackText);
+
+      // 🔥 Extract JSON safely
       const cleanJSON = feedbackText.match(/\{[\s\S]*\}/)?.[0];
 
       if (!cleanJSON) {
-        console.error("❌ RAW AI RESPONSE:", feedbackText);
-        setStatusText("❌ Invalid AI format");
+        console.error("❌ INVALID AI RESPONSE:", feedbackText);
+        setStatusText("❌ AI returned invalid format");
         return;
       }
 
@@ -200,7 +208,7 @@ const Upload = () => {
                 rows={5}
               />
 
-              {/* 🔥 IMPORTANT FIX */}
+              {/* ✅ CONTROLLED FILE */}
               <FileUploader file={file} onFileSelect={handleFileSelect} />
 
               <button type="submit" className="primary-button">
