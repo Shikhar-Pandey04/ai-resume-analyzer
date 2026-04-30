@@ -80,12 +80,12 @@ const Upload = () => {
         feedback: null,
       };
 
-      // save initial
+      // initial save
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
       // 🤖 AI feedback
       setStatusText("Analyzing resume...");
-      const feedback = await ai.feedback(
+      const feedback: any = await ai.feedback(
         uploadedFile.path,
         prepareInstructions({ jobTitle, jobDescription })
       );
@@ -95,15 +95,24 @@ const Upload = () => {
         return;
       }
 
-      // 🔥 CORRECT PARSING
+      // 🔥 SAFE PARSING
       let feedbackText = "";
 
-      if (typeof feedback?.message?.content === "string") {
-        feedbackText = feedback.message.content;
-      } else if (Array.isArray(feedback?.message?.content)) {
-        feedbackText = feedback.message.content
-          .map((item: any) => item?.text || "")
-          .join("");
+      if (feedback?.message?.content) {
+        if (typeof feedback.message.content === "string") {
+          feedbackText = feedback.message.content;
+        } else if (Array.isArray(feedback.message.content)) {
+          feedbackText = feedback.message.content
+            .map((item: any) => item?.text || "")
+            .join("");
+        }
+      }
+
+      // 🚨 empty check
+      if (!feedbackText || feedbackText.trim() === "") {
+        console.error("❌ EMPTY AI RESPONSE:", feedback);
+        setStatusText("❌ AI returned empty response");
+        return;
       }
 
       console.log("🔥 RAW AI TEXT:", feedbackText);
@@ -112,8 +121,8 @@ const Upload = () => {
       const cleanJSON = feedbackText.match(/\{[\s\S]*\}/)?.[0];
 
       if (!cleanJSON) {
-        console.error("❌ INVALID AI RESPONSE:", feedbackText);
-        setStatusText("❌ AI returned invalid format");
+        console.error("❌ INVALID JSON FORMAT:", feedbackText);
+        setStatusText("❌ AI response not valid JSON");
         return;
       }
 
@@ -122,8 +131,8 @@ const Upload = () => {
       try {
         parsedFeedback = JSON.parse(cleanJSON);
       } catch (err) {
-        console.error("❌ JSON parse failed:", cleanJSON);
-        setStatusText("❌ Invalid AI response");
+        console.error("❌ JSON PARSE FAILED:", cleanJSON);
+        setStatusText("❌ JSON parsing failed");
         return;
       }
 
