@@ -7,8 +7,8 @@ import { convertPdfToImage } from '~/lib/pdf2img';
 import { generateUUID } from '~/lib/utils';
 import { prepareInstructions } from '~/constants';
 
-const upload = () => {
-  // ✅ FIXED (Zustand selector)
+const Upload = () => {   // ✅ FIXED NAME (Capital U)
+
   const fs = usePuterStore((state) => state.fs);
   const ai = usePuterStore((state) => state.ai);
   const kv = usePuterStore((state) => state.kv);
@@ -37,7 +37,6 @@ const upload = () => {
     setISProcessing(true);
 
     try {
-      // 🔹 Upload PDF
       setStatusText('Uploading the file...');
       const uploadedFile = await fs.upload([file]);
 
@@ -46,18 +45,15 @@ const upload = () => {
         return;
       }
 
-      // 🔹 Convert to Image
       setStatusText('Converting to image...');
       const imageFile = await convertPdfToImage(file);
 
       if (!imageFile.file) {
         const errorMsg = imageFile.error || 'Failed to convert PDF to image';
-        console.error('PDF conversion failed:', errorMsg);
         setStatusText(`Error: ${errorMsg}`);
         return;
       }
 
-      // 🔹 Upload Image
       setStatusText('Uploading the image...');
       const uploadedImage = await fs.upload([imageFile.file]);
 
@@ -66,7 +62,6 @@ const upload = () => {
         return;
       }
 
-      // 🔹 Prepare Data
       setStatusText('Preparing Data...');
       const uuid = generateUUID();
 
@@ -82,7 +77,6 @@ const upload = () => {
 
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
-      // 🔹 AI Analysis
       setStatusText('Analyzing...');
       const feedback = await ai.feedback(
         uploadedFile.path,
@@ -94,7 +88,6 @@ const upload = () => {
         return;
       }
 
-      // 🔥 SAFE CONTENT ACCESS
       const feedbackText =
         typeof feedback.message?.content === 'string'
           ? feedback.message.content
@@ -104,8 +97,7 @@ const upload = () => {
 
       try {
         parsedFeedback = JSON.parse(feedbackText);
-      } catch (err) {
-        console.error("JSON parse failed:", feedbackText);
+      } catch {
         setStatusText("Error: Invalid AI response format");
         return;
       }
@@ -114,7 +106,6 @@ const upload = () => {
 
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
-      // 🔹 Success
       setStatusText('Analysis complete, redirecting...');
       navigate(`/resume/${uuid}`);
 
@@ -141,7 +132,6 @@ const upload = () => {
     const jobTitle = formData.get('job-title') as string;
     const jobDescription = formData.get('job-description') as string;
 
-    // 🔥 VALIDATION
     if (!companyName || !jobTitle || !jobDescription) {
       alert("Please fill all fields");
       return;
@@ -169,37 +159,16 @@ const upload = () => {
 
           {!isProcessing && (
             <form
-              id="upload-form"
               onSubmit={handleSubmit}
               className="flex flex-col gap-4 mt-8"
             >
-              <div className="form-div">
-                <label>Company Name</label>
-                <input type="text" name="company-name" placeholder="Company Name" />
-              </div>
+              <input name="company-name" placeholder="Company Name" />
+              <input name="job-title" placeholder="Job Title" />
+              <textarea name="job-description" placeholder="Job Description" />
 
-              <div className="form-div">
-                <label>Job Title</label>
-                <input type="text" name="job-title" placeholder="Job Title" />
-              </div>
+              <FileUploader onFileSelect={handleFileSelect} />
 
-              <div className="form-div">
-                <label>Job Description</label>
-                <textarea
-                  rows={5}
-                  name="job-description"
-                  placeholder="Job Description"
-                ></textarea>
-              </div>
-
-              <div className="form-div">
-                <label>Upload Resume</label>
-                <FileUploader onFileSelect={handleFileSelect} />
-              </div>
-
-              <button className="primary-button" type="submit">
-                Analyze Resume
-              </button>
+              <button type="submit">Analyze Resume</button>
             </form>
           )}
         </div>
@@ -208,4 +177,4 @@ const upload = () => {
   );
 };
 
-export default upload;
+export default Upload; // ✅ FIXED EXPORT

@@ -1,4 +1,3 @@
-
 import {
   isRouteErrorResponse,
   Links,
@@ -10,8 +9,6 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import {usePuterStore} from "~/lib/puter";
-import {useEffect} from "react";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -22,17 +19,12 @@ export const links: Route.LinksFunction = () => [
   },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    href:
+      "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { init } = usePuterStore();
-
-  useEffect(() => {
-    init()
-  }, [init]);
-
   return (
     <html lang="en">
       <head>
@@ -42,7 +34,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        {/* ✅ Puter script */}
         <script src="https://js.puter.com/v2/"></script>
+
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -66,7 +60,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
+  } else if (import.meta.env.DEV && error instanceof Error) {
     details = error.message;
     stack = error.stack;
   }
@@ -83,4 +77,3 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     </main>
   );
 }
-

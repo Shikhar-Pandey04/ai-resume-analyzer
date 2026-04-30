@@ -6,37 +6,42 @@ declare global {
   }
 }
 
-// 🔹 Safe getter
-const getPuter = (): any => {
-  if (typeof window === "undefined") return null;
-  return window.puter || null;
+// 🔥 Wait until Puter is available (IMPORTANT FIX)
+const waitForPuter = async (): Promise<any> => {
+  return new Promise((resolve) => {
+    const check = () => {
+      if (typeof window !== "undefined" && window.puter) {
+        resolve(window.puter);
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
 };
 
 export const usePuterStore = create((set, get) => {
   const setError = (msg: string) => {
-    console.error(msg);
+    console.error("❌ Puter Error:", msg);
     set({ error: msg, isLoading: false });
   };
 
   // 📂 FILE UPLOAD
   const upload = async (files: File[] | Blob[]) => {
-    const puter = getPuter();
-    if (!puter) {
-      setError("Puter.js not available");
+    try {
+      const puter = await waitForPuter();
+      return await puter.fs.upload(files);
+    } catch (err) {
+      console.error("Upload Error:", err);
+      setError("File upload failed");
       return;
     }
-    return puter.fs.upload(files);
   };
 
-  // 🤖 AI CHAT (✅ FIXED SIGNATURE)
+  // 🤖 AI CHAT
   const chat = async (prompt: any, options?: any) => {
-    const puter = getPuter();
-    if (!puter) {
-      setError("Puter.js not available");
-      return;
-    }
-
     try {
+      const puter = await waitForPuter();
       return await puter.ai.chat(prompt, options);
     } catch (err) {
       console.error("Chat Error:", err);
@@ -45,15 +50,11 @@ export const usePuterStore = create((set, get) => {
     }
   };
 
-  // 🔥 AI FEEDBACK (✅ FINAL FIX)
+  // 🔥 AI FEEDBACK (FILE + TEXT)
   const feedback = async (path: string, message: string) => {
-    const puter = getPuter();
-    if (!puter) {
-      setError("Puter.js not available");
-      return;
-    }
-
     try {
+      const puter = await waitForPuter();
+
       return await puter.ai.chat(
         [
           {
@@ -71,33 +72,37 @@ export const usePuterStore = create((set, get) => {
           },
         ],
         {
-          model: "gpt-4o-mini", // ✅ correct placement
+          model: "gpt-4o-mini",
         }
       );
     } catch (err) {
-      console.error("AI Error:", err);
-      setError("AI request failed");
+      console.error("AI Feedback Error:", err);
+      setError("AI feedback failed");
       return;
     }
   };
 
   // 🗄️ KV STORAGE
   const getKV = async (key: string) => {
-    const puter = getPuter();
-    if (!puter) {
-      setError("Puter.js not available");
+    try {
+      const puter = await waitForPuter();
+      return await puter.kv.get(key);
+    } catch (err) {
+      console.error("KV Get Error:", err);
+      setError("KV get failed");
       return;
     }
-    return puter.kv.get(key);
   };
 
   const setKV = async (key: string, value: string) => {
-    const puter = getPuter();
-    if (!puter) {
-      setError("Puter.js not available");
+    try {
+      const puter = await waitForPuter();
+      return await puter.kv.set(key, value);
+    } catch (err) {
+      console.error("KV Set Error:", err);
+      setError("KV set failed");
       return;
     }
-    return puter.kv.set(key, value);
   };
 
   return {
