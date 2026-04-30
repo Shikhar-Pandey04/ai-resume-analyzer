@@ -94,18 +94,27 @@ const Upload = () => {
         return;
       }
 
-      // 🧾 Extract safely
+      // 🧾 Extract response safely
       const feedbackText =
         typeof feedback?.message?.content === "string"
           ? feedback.message.content
           : feedback?.message?.content?.[0]?.text || "";
 
+      // 🔥 FIX: extract only JSON
+      const cleanJSON = feedbackText.match(/\{[\s\S]*\}/)?.[0];
+
+      if (!cleanJSON) {
+        console.error("❌ RAW AI RESPONSE:", feedbackText);
+        setStatusText("❌ Invalid AI format");
+        return;
+      }
+
       let parsedFeedback;
 
       try {
-        parsedFeedback = JSON.parse(feedbackText);
+        parsedFeedback = JSON.parse(cleanJSON);
       } catch (err) {
-        console.error("JSON parse error:", feedbackText);
+        console.error("❌ JSON parse failed:", cleanJSON);
         setStatusText("❌ Invalid AI response");
         return;
       }
@@ -191,7 +200,7 @@ const Upload = () => {
                 rows={5}
               />
 
-              {/* 🔥 FIXED LINE */}
+              {/* 🔥 IMPORTANT FIX */}
               <FileUploader file={file} onFileSelect={handleFileSelect} />
 
               <button type="submit" className="primary-button">
