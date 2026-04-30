@@ -80,6 +80,7 @@ const Upload = () => {
         feedback: null,
       };
 
+      // save initial
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
       // 🤖 AI feedback
@@ -94,12 +95,20 @@ const Upload = () => {
         return;
       }
 
-      // ✅ IMPORTANT FIX (STRING DIRECT)
-      const feedbackText = feedback;
+      // 🔥 CORRECT PARSING
+      let feedbackText = "";
+
+      if (typeof feedback?.message?.content === "string") {
+        feedbackText = feedback.message.content;
+      } else if (Array.isArray(feedback?.message?.content)) {
+        feedbackText = feedback.message.content
+          .map((item: any) => item?.text || "")
+          .join("");
+      }
 
       console.log("🔥 RAW AI TEXT:", feedbackText);
 
-      // 🔥 Extract JSON safely
+      // 🔥 Extract JSON
       const cleanJSON = feedbackText.match(/\{[\s\S]*\}/)?.[0];
 
       if (!cleanJSON) {
@@ -120,6 +129,9 @@ const Upload = () => {
 
       // 💾 Save final data
       data.feedback = parsedFeedback;
+
+      console.log("💾 FINAL DATA:", data);
+
       await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
       // 🚀 Redirect
